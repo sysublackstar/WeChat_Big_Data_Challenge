@@ -9,7 +9,6 @@ from tensorflow import feature_column as fc
 from comm import ACTION_LIST, STAGE_END_DAY, FEA_COLUMN_LIST
 from evaluation import uAUC, compute_weighted_score
 
-
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
@@ -21,7 +20,6 @@ flags.DEFINE_float('learning_rate', 0.1, 'learning_rate')
 flags.DEFINE_float('embed_l2', None, 'embedding l2 reg')
 
 SEED = 2021
-
 
 
 class WideAndDeep(object):
@@ -69,13 +67,13 @@ class WideAndDeep(object):
     def df_to_dataset(self, df, stage, action, shuffle=True, batch_size=128, num_epochs=1):
         '''
         把DataFrame转为tensorflow dataset
-        :param df: pandas dataframe. 
+        :param df: pandas dataframe.
         :param stage: String. Including "online_train"/"offline_train"/"evaluate"/"submit"
         :param action: String. Including "read_comment"/"like"/"click_avatar"/"favorite"/"forward"/"comment"/"follow"
-        :param shuffle: Boolean. 
+        :param shuffle: Boolean.
         :param batch_size: Int. Size of each batch
         :param num_epochs: Int. Epochs num
-        :return: tf.data.Dataset object. 
+        :return: tf.data.Dataset object.
         '''
         print(df.shape)
         print(df.columns)
@@ -105,7 +103,7 @@ class WideAndDeep(object):
         训练单个行为的模型
         """
         file_name = "{stage}_{action}_{day}_concate_sample.csv".format(stage=self.stage, action=self.action,
-                                                                      day=STAGE_END_DAY[self.stage])
+                                                                       day=STAGE_END_DAY[self.stage])
         stage_dir = os.path.join(FLAGS.root_path, self.stage, file_name)
         df = pd.read_csv(stage_dir)
         self.estimator.train(
@@ -123,7 +121,7 @@ class WideAndDeep(object):
             # 测试集，所有action在同一个文件
             action = "all"
         file_name = "{stage}_{action}_{day}_concate_sample.csv".format(stage=self.stage, action=action,
-                                                                      day=STAGE_END_DAY[self.stage])
+                                                                       day=STAGE_END_DAY[self.stage])
         evaluate_dir = os.path.join(FLAGS.root_path, self.stage, file_name)
         df = pd.read_csv(evaluate_dir)
         userid_list = df['userid'].astype(str).tolist()
@@ -136,13 +134,12 @@ class WideAndDeep(object):
         uauc = uAUC(labels, logits, userid_list)
         return df[["userid", "feedid"]], logits, uauc
 
-    
     def predict(self):
         '''
         预测单个行为的发生概率
         '''
         file_name = "{stage}_{action}_{day}_concate_sample.csv".format(stage=self.stage, action="all",
-                                                                      day=STAGE_END_DAY[self.stage])
+                                                                       day=STAGE_END_DAY[self.stage])
         submit_dir = os.path.join(FLAGS.root_path, self.stage, file_name)
         df = pd.read_csv(submit_dir)
         t = time.time()
@@ -152,10 +149,9 @@ class WideAndDeep(object):
         predicts_df = pd.DataFrame.from_dict(predicts)
         logits = predicts_df["logistic"].map(lambda x: x[0])
         # 计算2000条样本平均预测耗时（毫秒）
-        ts = (time.time()-t)*1000.0/len(df)*2000.0
+        ts = (time.time() - t) * 1000.0 / len(df) * 2000.0
         return df[["userid", "feedid"]], logits, ts
 
-    
 
 def del_file(path):
     '''
@@ -200,19 +196,19 @@ def get_feature_columns():
     linear_feature_columns.append(device)
     # 行为统计特征
     for b in FEA_COLUMN_LIST:
-        feed_b = fc.numeric_column(b+"sum", default_value=0.0)
+        feed_b = fc.numeric_column(b + "sum", default_value=0.0)
         linear_feature_columns.append(feed_b)
-        user_b = fc.numeric_column(b+"sum_user", default_value=0.0)
+        user_b = fc.numeric_column(b + "sum_user", default_value=0.0)
         linear_feature_columns.append(user_b)
     return dnn_feature_columns, linear_feature_columns
 
 
 def main(argv):
-    t = time.time() 
+    t = time.time()
     dnn_feature_columns, linear_feature_columns = get_feature_columns()
     # stage = argv[1]
     stage = "offline_train"
-    print('Stage: %s'%stage)
+    print('Stage: %s' % stage)
     eval_dict = {}
     predict_dict = {}
     predict_time_cost = {}
@@ -248,7 +244,6 @@ def main(argv):
         weight_auc = compute_weighted_score(eval_dict, weight_dict)
         print("Weighted uAUC: ", weight_auc)
 
-
     if stage in ["evaluate", "submit"]:
         # 保存所有行为的预测结果，生成submit文件
         actions = pd.DataFrame.from_dict(predict_dict)
@@ -258,7 +253,7 @@ def main(argv):
         # 写文件
         file_name = "submit_" + str(int(time.time())) + ".csv"
         submit_file = os.path.join(FLAGS.root_path, stage, file_name)
-        print('Save to: %s'%submit_file)
+        print('Save to: %s' % submit_file)
         res.to_csv(submit_file, index=False)
 
     if stage == "submit":
@@ -266,9 +261,8 @@ def main(argv):
         print(predict_time_cost)
         print('单个目标行为2000条样本平均预测耗时（毫秒）：')
         print(np.mean([v for v in predict_time_cost.values()]))
-    print('Time cost: %.2f s'%(time.time()-t))
+    print('Time cost: %.2f s' % (time.time() - t))
 
 
 if __name__ == "__main__":
     tf.app.run(main)
-    

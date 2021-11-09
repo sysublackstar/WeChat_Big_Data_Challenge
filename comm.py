@@ -35,7 +35,6 @@ STAGE_END_DAY = {"online_train": 14, "offline_train": 12, "evaluate": 13, "submi
 # 各个行为构造训练数据的天数
 ACTION_DAY_NUM = {"read_comment": 5, "like": 5, "click_avatar": 5, "forward": 5, "comment": 5, "follow": 5, "favorite": 5}
 
-
 def create_dir():
     """
     创建所需要的目录
